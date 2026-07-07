@@ -1,28 +1,64 @@
-# Codex Quota Lens
+<h1 align="center">Codex Quota Lens</h1>
 
-Codex Quota Lens is a compact Codex skill for inspecting Codex/ChatGPT rate-limit reset credits. It turns the local Codex auth state into a readable quota window: available reset count, remaining lifetime, expiry time, and reminder times in the user's language and local time zone.
+<p align="center">
+  A focused Codex skill for checking ChatGPT/Codex reset-credit availability, expiry windows, and reminder times.
+</p>
 
-This repository contains one focused skill. It does not install a background service, store credentials, or write to external systems. It reads local Codex auth only when a query is run.
+<p align="center">
+  <a href="./README.md">English</a>
+  ·
+  <a href="./README.zh.md">中文</a>
+  ·
+  <a href="./README.ja.md">日本語</a>
+</p>
 
-## Included Skill
+<p align="center">
+  <img alt="Skill" src="https://img.shields.io/badge/Codex-Skill-111827?style=for-the-badge">
+  <img alt="Languages" src="https://img.shields.io/badge/Output-EN%20%7C%20ZH%20%7C%20JA-2563eb?style=for-the-badge">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.9%2B-0f766e?style=for-the-badge">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-7c3aed?style=for-the-badge">
+</p>
+
+---
+
+## What It Does
+
+Codex Quota Lens turns the local Codex ChatGPT auth state into a readable quota window:
+
+| Signal | What you get |
+| --- | --- |
+| Available credits | Current reset-credit count |
+| Remaining time | How long each reset credit stays valid |
+| Local expiry | Expiry converted to your chosen time zone |
+| Reminder schedule | One day and one hour before each expiry |
+| Automation output | JSON for scripts, reminders, or follow-up workflows |
+
+It is intentionally narrow: one skill, one script, one job. It does not install a service, store credentials, or write to external systems.
+
+## Skill
 
 ### `codex-quota-lens`
 
-Queries current Codex/ChatGPT reset credits, with output in English, Chinese, or Japanese, and with either local machine time or an explicit IANA time zone.
+| Area | Detail |
+| --- | --- |
+| Dependency | No third-party Python packages |
+| Required state | Local Codex is logged in with ChatGPT |
+| Network | Calls the ChatGPT web reset-credit status endpoint only when queried |
+| Languages | `en`, `zh`, `ja`, or locale auto-detection |
+| Time zones | `auto` or any IANA zone such as `Asia/Tokyo` |
 
-〖Dependency〗No third-party Python packages. Local Codex must be logged in with ChatGPT, and `chatgpt.com` must be reachable.
+## Flow
 
-〖External request〗Only calls the ChatGPT web reset-credit status endpoint when the query is run.
+```mermaid
+flowchart LR
+  A["Codex auth.json<br/>local only"] --> B["quota_lens.py"]
+  B --> C["ChatGPT reset-credit<br/>status endpoint"]
+  C --> D["Localized quota report"]
+  D --> E["Text output"]
+  D --> F["JSON output"]
+```
 
-Use cases:
-
-- Check how many Codex reset credits are currently available.
-- See how long each reset credit remains valid.
-- Convert expiry times to China, Japan, US, or other local time zones.
-- Generate reminder times one day and one hour before expiry.
-- Emit JSON for scripts, reminders, or other automation.
-
-## Installation
+## Install
 
 Ask Codex to install the skill from this repository:
 
@@ -30,41 +66,41 @@ Ask Codex to install the skill from this repository:
 Install Codex Quota Lens from https://github.com/tsetsugekka/codex-quota-lens.
 ```
 
-For one-off use, clone the repository and run the script directly.
+For a one-off check, clone the repository and run the script directly.
 
-## Direct Usage
+## Run
 
-From the repository root:
+Auto language and local machine time:
 
 ```bash
 python3 skills/codex-quota-lens/scripts/quota_lens.py --lang auto --timezone auto
 ```
 
-English + Pacific Time:
+English with Pacific Time:
 
 ```bash
 python3 skills/codex-quota-lens/scripts/quota_lens.py --lang en --timezone America/Los_Angeles
 ```
 
-Chinese + China time:
+Chinese with China time:
 
 ```bash
 python3 skills/codex-quota-lens/scripts/quota_lens.py --lang zh --timezone Asia/Shanghai
 ```
 
-Japanese + Japan time:
+Japanese with Japan time:
 
 ```bash
 python3 skills/codex-quota-lens/scripts/quota_lens.py --lang ja --timezone Asia/Tokyo
 ```
 
-Machine-readable JSON:
+JSON:
 
 ```bash
 python3 skills/codex-quota-lens/scripts/quota_lens.py --lang en --timezone UTC --json
 ```
 
-Use a specific Codex auth file:
+Specific auth file:
 
 ```bash
 python3 skills/codex-quota-lens/scripts/quota_lens.py --auth-file ~/.codex/auth.json
@@ -84,34 +120,42 @@ Output my current reset-credit status as JSON.
 Tell me when each reset credit should be reminded 1 day and 1 hour before expiry.
 ```
 
-## Output
+## Output Shape
 
-Text output includes:
+Text output is designed for quick reading:
 
-- reset credit count
-- remaining time for each credit
-- local expiry time for each credit
-- reminder time one day before expiry
-- reminder time one hour before expiry
+```text
+Codex reset credits: 2
+Reset credit 1:
+  Remaining: 19d 14h 30m 34s
+  Expires: 2026-07-26 16:55:34 (America/Los_Angeles)
+  Reminders:
+    - 1 day before expiry: 2026-07-25 16:55:34 (America/Los_Angeles)
+    - 1 hour before expiry: 2026-07-26 15:55:34 (America/Los_Angeles)
+```
 
 JSON output includes:
 
-- `language`
-- `timezone`
-- `generated_at_utc`
-- `available_count`
-- `credits[].remaining`
-- `credits[].expires_at_utc`
-- `credits[].expires_at_local`
-- `credits[].reminders[]`
+| Field | Meaning |
+| --- | --- |
+| `language` | Resolved output language |
+| `timezone` | Resolved display time zone |
+| `generated_at_utc` | Query generation timestamp |
+| `available_count` | Available reset-credit count |
+| `credits[].remaining` | Localized remaining duration |
+| `credits[].expires_at_utc` | Expiry in UTC |
+| `credits[].expires_at_local` | Expiry in selected time zone |
+| `credits[].reminders[]` | Reminder schedule |
 
 ## Safety
 
-- The script reads local Codex `auth.json` only to obtain the current ChatGPT access token.
-- The token is sent only as an Authorization header to the ChatGPT reset-credit status endpoint; it is not printed.
-- The repository does not store tokens, cookies, `.codex/`, SQLite state, session logs, or `.env` files.
-- `.gitignore` excludes `.codex/`, `auth.json`, `.env*`, `*.sqlite`, and similar local state.
-- If the endpoint or Codex auth format changes, update the script instead of copying or exposing credentials manually.
+| Rule | Detail |
+| --- | --- |
+| Token handling | Reads local `auth.json` only to obtain the current ChatGPT access token |
+| Token output | Never prints the token |
+| Request scope | Sends the token only as an Authorization header to the reset-credit status endpoint |
+| Repository hygiene | Excludes `.codex/`, `auth.json`, `.env*`, SQLite state, and cache files |
+| Failure mode | If the endpoint or auth format changes, update the script instead of copying credentials manually |
 
 ## Repository Layout
 
@@ -129,8 +173,6 @@ README.ja.md
 LICENSE
 ```
 
-## Languages
+## License
 
-- 中文：`README.zh.md`
-- English: `README.md`
-- 日本語：`README.ja.md`
+MIT
