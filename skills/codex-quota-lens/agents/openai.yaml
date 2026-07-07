@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Quota Lens"
+  short_description: "Localized Codex quota reset status"
+  default_prompt: "Use $codex-quota-lens to show my Codex quota reset status in my local language and timezone."
